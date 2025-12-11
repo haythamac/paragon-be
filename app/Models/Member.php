@@ -16,5 +16,9 @@ class Member extends Model
         'power',
     ];
 
+    protected $casts = [
+        'level' => 'integer',
+        'power' => 'integer',
+    ];
     
 }

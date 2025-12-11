@@ -9,3 +9,16 @@
 - added member and raffle model with -mfsc
 - added api routes and update controller
 - test the member get api from postman
+
+
+### December 12, 2025
+
+## TODO LIST
+- member controller
+- raffle controller
+- can create raffle and display on website
+
+## TASKS DONE
+- can add member along with simple validation
+
+
