@@ -20,5 +20,8 @@
 
 ## TASKS DONE
 - can add member along with simple validation
-
+- can add raffle 
+- added Items -mfsc
+- added ItemsCategory -mfs
+- can add items and item categories (validation and image in the future)
 

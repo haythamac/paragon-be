@@ -11,14 +11,13 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('raffles', function (Blueprint $table) {
+        Schema::create('items', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->string('description')->nullable();
-            $table->datetime('date')->nullable();
-            $table->integer('members_joined')->nullable();
-            $table->integer('item_count')->nullable();
-            $table->enum('status', ['pending', 'ongoing', 'completed']);
+            $table->text('description')->nullable();
+            $table->string('image')->nullable();
+            $table->enum('rarity', ['common', 'uncommon', 'rare', 'epic', 'legendary'])->nullable();
+            $table->foreignId('item_category_id')->nullable()->constrained('item_categories')->nullOnDelete();
             $table->timestamps();
         });
     }
@@ -28,6 +27,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('raffles');
+        Schema::dropIfExists('items');
     }
 };
