@@ -40,4 +40,58 @@ class MemberController extends Controller
             'data' => $member,
         ], 201);
     }
+
+    public function update(Request $request, $id)
+    {
+        $member = Member::find($id);
+        if (!$member) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Member not found',
+            ], 404);
+        }
+
+        $rules = [
+            'name' => 'sometimes|required|string|max:255|unique:members,name,' . $id,
+            'level' => 'sometimes|required|integer|min:1',
+            'power' => 'sometimes|required|integer|min:1',
+            'role' => 'sometimes|required|string|max:255',
+        ];
+
+        $validator = Validator::make($request->all(), $rules);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        $validated = $validator->validated();
+        $member->update($validated);
+
+        return response()->json([
+            'success' => true,
+            'data' => $member,
+        ]);
+    }
+
+    public function destroy($id)
+    {
+        $member = Member::find($id);
+        if (!$member) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Member not found',
+            ], 404);
+        }
+
+        $member->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Member deleted successfully',
+        ]);
+    }
 }
