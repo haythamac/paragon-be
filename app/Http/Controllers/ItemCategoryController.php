@@ -23,6 +23,7 @@ class ItemCategoryController extends Controller
         $itemCategory = ItemCategory::create($request->all());
         return response()->json([
             'success' => true,
+            'message' => 'Item category created successfully.',
             'data' => $itemCategory,
         ], 201);
     }

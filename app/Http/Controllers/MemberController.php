@@ -18,6 +18,7 @@ class MemberController extends Controller
     {
         $rules = [
             'name' => 'required|string|max:255|unique:members,name',
+            'class' => 'required|string|max:255',
             'level' => 'required|integer|min:1',
             'power' => 'required|integer|min:1',
         ];
@@ -38,6 +39,7 @@ class MemberController extends Controller
         return response()->json([
             'success' => true,
             'data' => $member,
+            'message' => 'Member created successfully.',
         ], 201);
     }
 
@@ -74,6 +76,7 @@ class MemberController extends Controller
         return response()->json([
             'success' => true,
             'data' => $member,
+            'message' => 'Member updated successfully.',
         ]);
     }
 
