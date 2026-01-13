@@ -15,6 +15,7 @@ class Member extends Model
         'level',
         'power',
         'role',
+        'class',
     ];
 
     protected $casts = [
