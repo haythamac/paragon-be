@@ -41,6 +41,53 @@ class MemberController extends Controller
             'data' => $member,
             'message' => 'Member created successfully.',
         ], 201);
+
+        // should be the response
+        // for success response
+        //   "success": true,
+        //   "data": {
+        //     "id": 123,
+        //     "type": "member",
+        //     "attributes": {
+        //       "name": "Warrior",
+        //       "level": 10,
+        //       "power": 250,
+        //       "created_at": "2026-01-14T06:19:00Z",
+        //       "updated_at": "2026-01-14T06:19:00Z",
+        //       "role": "fighter",
+        //       "class": "melee"
+        //     }
+        //   },
+        //   "message": "Member created successfully.",
+        //   "meta": {
+        //     "request_id": "abc123",
+        //     "timestamp": "2026-01-14T06:19:00Z",
+        //     "pagination": {
+        //       "page": 1,
+        //       "per_page": 20,
+        //       "total": 100
+        //     }
+        //   }
+        // }
+        
+        // for error response
+        // {
+        //   "success": false,
+        //   "errors": [
+        //     {
+        //       "code": "VALIDATION_ERROR",
+        //       "field": "name",
+        //       "message": "The name has already been taken."
+        //     }
+        //   ],
+        //   "message": "Validation failed",
+        //   "meta": {
+        //     "request_id": "abc123",
+        //     "timestamp": "2026-01-14T06:19:00Z"
+        //   }
+        // }
+
+
     }
 
     public function update(Request $request, $id)
