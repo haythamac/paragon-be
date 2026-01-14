@@ -11,7 +11,14 @@ class MemberController extends Controller
 {
     public function index()
     {
-        return response()->json(Member::all());
+        $members = Member::all();
+        return response()->json(
+            [
+                'success' => true,
+                'data' => $members,
+                'message' => 'Members retrieved successfully.',
+            ]
+        );
     }
 
     public function store(Request $request)
@@ -20,6 +27,7 @@ class MemberController extends Controller
             'name' => 'required|string|max:255|unique:members,name',
             'class' => 'required|string|max:255',
             'level' => 'required|integer|min:1',
+            'role' => 'required|string|max:255',
             'power' => 'required|integer|min:1',
         ];
 
