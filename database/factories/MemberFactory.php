@@ -17,7 +17,11 @@ class MemberFactory extends Factory
     public function definition(): array
     {
         return [
-            //
+            'name' => fake()->userName(),
+            'class' => fake()->randomElement(['archer', 'volva', 'berserker', 'warlord', 'skald']),
+            'role' => fake()->randomElement(['member', 'new member']),
+            'power' => fake()->numberBetween(90000, 200000),
+            'level' => fake()->numberBetween(50, 60),
         ];
     }
 }
