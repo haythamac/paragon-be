@@ -9,8 +9,14 @@ use Illuminate\Validation\Rule;
 class ItemsController extends Controller
 {
     public function index()
-    {
-        return response()->json(Items::all());
+    {   $items = Items::all();
+        return response()->json(
+            [
+                'success' => true,
+                'data' => $items,
+                'message' => 'Items retrieved successfully.',
+            ]
+        );
     }
 
     public function store(Request $request)
@@ -37,8 +43,9 @@ class ItemsController extends Controller
         ]);
 
         return response()->json([
+            'success' => true,
+            'data' => $item,
             'message' => 'Item created successfully',
-            'data' => $item
         ], 201);
     }
 
