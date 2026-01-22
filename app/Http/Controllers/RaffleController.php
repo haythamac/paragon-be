@@ -21,11 +21,15 @@ class RaffleController extends Controller
     {
         $rules = [
             'name' => 'required|string|max:255|unique:raffles,name',
+            'date' => 'required|date',
+            'description' => 'nullable|string',
+            'members' => 'required|array|min:1',
+            'members.*' => 'exists:members,id',
+            'members_joined' => 'nullable|integer|min:0',
+            'items' => 'required|array',
+            'items.*.id' => 'exists:items,id',
             'item_count' => 'required|integer|min:1',
             'status' => 'required|in:pending,ongoing,completed',
-            'members_joined' => 'nullable|integer|min:0',
-            'description' => 'nullable|string',
-            'date' => 'required|date'
         ];
 
         $validator = Validator::make($request->all(), $rules);
