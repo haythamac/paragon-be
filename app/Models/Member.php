@@ -22,5 +22,10 @@ class Member extends Model
         'level' => 'integer',
         'power' => 'integer',
     ];
+
+    public function raffles()
+    {
+        return $this->belongsToMany(Raffle::class, 'raffle_member', 'member_id', 'raffle_id');
+    }
     
 }

@@ -4,12 +4,25 @@ namespace App\Http\Controllers;
 
 use App\Models\Raffle;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 
 class RaffleController extends Controller
 {
     public function index(){
-        $raffles = Raffle::all();
+        $raffles = Raffle::withCount('members')  // Adds members_count
+                    ->get()
+                    ->map(function ($raffle) {
+                        return [
+                            'id' => $raffle->id,
+                            'name' => $raffle->name,
+                            'date' => $raffle->date,
+                            'status' => $raffle->status,
+                            'members_count' => $raffle->members_count,
+                            // Calculate items count
+                            'items_count' => $raffle->items()->count(),
+                        ];
+                    });
         return response()->json([
             'success' => true,
             'data' => $raffles,
@@ -19,19 +32,24 @@ class RaffleController extends Controller
     
     public function store(Request $request)
     {
+
+        // create validation rules
         $rules = [
             'name' => 'required|string|max:255|unique:raffles,name',
             'date' => 'required|date',
             'description' => 'nullable|string',
+            // members
             'members' => 'required|array|min:1',
             'members.*' => 'exists:members,id',
-            'members_joined' => 'nullable|integer|min:0',
+            // items
             'items' => 'required|array',
             'items.*.id' => 'exists:items,id',
-            'item_count' => 'required|integer|min:1',
+            'items.*.quantity' => 'required|integer|min:1',
+
             'status' => 'required|in:pending,ongoing,completed',
         ];
 
+        // validate the request
         $validator = Validator::make($request->all(), $rules);
 
         if ($validator->fails()) {
@@ -42,13 +60,51 @@ class RaffleController extends Controller
             ], 422);
         }
 
+        // get validated data
         $validated = $validator->validated();
-        $raffle = Raffle::create($validated);
 
-        return response()->json([
-            'success' => true,
-            'data' => $raffle,
-            'message' => 'Raffle created successfully',
-        ], 201);
+        // use transaction to ensure data integrity
+        try {
+            $raffle = DB::transaction(function () use ($validated) {
+                // create the raffle (only the direct columns)
+                $raffle = Raffle::create([
+                    'name' => $validated['name'],
+                    'date' => $validated['date'],
+                    'description' => $validated['description'] ?? null,
+                    'status' => $validated['status'],
+                ]);
+
+                // attach members to the raffle
+                $raffle->members()->attach($validated['members']);
+
+                // attach items with their quantities
+                $itemsData = [];
+                foreach ($validated['items'] as $item) {
+                    $itemsData[$item['id']] = ['quantity' => $item['quantity']];
+                }
+                $raffle->items()->attach($itemsData);
+
+                // load relationships for the response
+                $raffle->load('members', 'items');
+
+                return $raffle;
+            });
+
+            // success response
+            return response()->json([
+                'success' => true,
+                'message' => 'Raffle created successfully',
+                'data' => $raffle,
+            ], 201);
+
+        } catch (\Exception $e) {
+            // handle transaction failures
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to create raffle',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+
     }
 }
