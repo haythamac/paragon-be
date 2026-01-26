@@ -19,7 +19,6 @@ class RaffleController extends Controller
                             'date' => $raffle->date,
                             'status' => $raffle->status,
                             'members_count' => $raffle->members_count,
-                            // Calculate items count
                             'items_count' => $raffle->items()->count(),
                         ];
                     });
@@ -66,7 +65,7 @@ class RaffleController extends Controller
         // use transaction to ensure data integrity
         try {
             $raffle = DB::transaction(function () use ($validated) {
-                // create the raffle (only the direct columns)
+                // create the raffle
                 $raffle = Raffle::create([
                     'name' => $validated['name'],
                     'date' => $validated['date'],
@@ -98,7 +97,7 @@ class RaffleController extends Controller
             ], 201);
 
         } catch (\Exception $e) {
-            // handle transaction failures
+            // handle errors
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to create raffle',
