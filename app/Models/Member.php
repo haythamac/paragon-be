@@ -23,9 +23,16 @@ class Member extends Model
         'power' => 'integer',
     ];
 
+    // Raffles this member has joined
     public function raffles()
     {
         return $this->belongsToMany(Raffle::class, 'raffle_member', 'member_id', 'raffle_id');
+    }
+
+    // Items this member received
+    public function distributions()
+    {
+        return $this->hasMany(RaffleDistribution::class);
     }
     
 }

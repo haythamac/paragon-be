@@ -23,18 +23,25 @@ class Raffle extends Model
         'date' => 'date',
     ];
 
+    // Members of this raffle
     public function members()
     {
         return $this->belongsToMany(Member::class, 'raffle_member', 'raffle_id', 'member_id')
                     ->withTimestamps();
     }
 
+    // Items included in this raffle
     public function items()
     {
-        // This just references the items catalog
         return $this->belongsToMany(Items::class, 'raffle_item' ,'raffle_id', 'item_id')
                     ->withPivot('quantity')
                     ->withTimestamps();
+    }
+
+    // Distributions of items for this raffle
+    public function distributions()
+    {
+        return $this->hasMany(RaffleDistribution::class);
     }
 
     // Calculate total items count
