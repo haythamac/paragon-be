@@ -43,7 +43,7 @@ class RaffleController extends Controller
             // items
             'items' => 'required|array',
             'items.*.id' => 'exists:items,id',
-            'items.*.quantity' => 'required|integer|min:1',
+            'items.*.initial_quantity' => 'required|integer|min:1',
 
             'status' => 'required|in:pending,ongoing,completed',
         ];
@@ -79,7 +79,10 @@ class RaffleController extends Controller
                 // attach items with their quantities
                 $itemsData = [];
                 foreach ($validated['items'] as $item) {
-                    $itemsData[$item['id']] = ['quantity' => $item['quantity']];
+                    $itemsData[$item['id']] = [
+                        'initial_quantity' => $item['initial_quantity'],
+                        'remaining_quantity' => $item['initial_quantity'],
+                        ];
                 }
                 $raffle->items()->attach($itemsData);
 

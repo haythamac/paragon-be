@@ -34,7 +34,7 @@ class Raffle extends Model
     public function items()
     {
         return $this->belongsToMany(Items::class, 'raffle_item' ,'raffle_id', 'item_id')
-                    ->withPivot('quantity')
+                    ->withPivot('initial_quantity')
                     ->withTimestamps();
     }
 
@@ -47,7 +47,7 @@ class Raffle extends Model
     // Calculate total items count
     public function calculateItemsCount(): int
     {
-        return $this->items()->sum('raffle_item.quantity');
+        return $this->items()->sum('raffle_item.initial_quantity');
     }
 
     public function getMembersCountAttribute()
@@ -57,6 +57,6 @@ class Raffle extends Model
 
     public function getItemsCountAttribute()
     {
-        return $this->items()->sum('quantity');
+        return $this->items()->sum('initial_quantity');
     }
 }
