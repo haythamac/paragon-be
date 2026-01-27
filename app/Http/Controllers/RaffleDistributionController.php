@@ -17,45 +17,117 @@ class RaffleDistributionController extends Controller
     
     public function auto(Request $request)
     {
-        // validate raffle, member
-        $data = $request->validate([
+        /**
+         * 1️⃣ Define validation rules
+         * Auto distribution only needs raffle + member.
+         * Item selection is handled by backend logic.
+         */
+        $rules = [
             'raffle_id' => 'required|exists:raffles,id',
             'member_id' => 'required|exists:members,id',
-        ]);
+        ];
 
-        $raffle = Raffle::findOrFail($data['raffle_id']);
+        /**
+         * 2️⃣ Run validator
+         */
+        $validator = Validator::make($request->all(), $rules);
 
-        // Ensure member belongs to raffle
-        if (! $raffle->members()->where('members.id', $data['member_id'])->exists()) {
-            return response()->json(['message' => 'Member not in raffle'], 422);
-        }
-        // pick first available item
-        // Get next available item (quantity > 0)
-        $item = $raffle->items()
-            ->wherePivot('quantity', '>', 0)
-            ->orderBy('raffle_item.id')
-            ->first();
-
-        if (! $item) {
-            return response()->json(['message' => 'No items left'], 422);
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors'  => $validator->errors(),
+            ], 422);
         }
 
-        // create record
-        // Create distribution
-        $distribution = RaffleDistribution::create([
-            'raffle_id' => $raffle->id,
-            'member_id' => $data['member_id'],
-            'item_id'   => $item->id,
-            'quantity'  => 1,
-        ]);
+        /**
+         * 3️⃣ Get validated data
+         */
+        $validated = $validator->validated();
 
-        // Reduce quantity
-        $raffle->items()->updateExistingPivot(
-            $item->id,
-            ['quantity' => $item->pivot->quantity - 1]
-        );
+        /**
+         * 4️⃣ Use DB transaction
+         * We must guarantee:
+         * - item selection
+         * - distribution creation
+         * - quantity reduction
+         * happen atomically.
+         */
+        try {
+            $distribution = DB::transaction(function () use ($validated) {
 
-        return response()->json($distribution, 201);
+                // Load raffle
+                $raffle = Raffle::findOrFail($validated['raffle_id']);
+
+                /**
+                 * 5️⃣ Ensure member belongs to this raffle
+                 */
+                $memberExists = $raffle->members()
+                    ->where('members.id', $validated['member_id'])
+                    ->exists();
+
+                if (! $memberExists) {
+                    throw new \Exception('Member not in raffle');
+                }
+
+                /**
+                 * 6️⃣ Pick the next available item
+                 * Rule:
+                 * - quantity > 0
+                 * - first attached item (FIFO style)
+                 */
+                $item = $raffle->items()
+                    ->wherePivot('quantity', '>', 0)
+                    ->orderBy('raffle_item.id')
+                    ->first();
+
+                if (! $item) {
+                    throw new \Exception('No items left to distribute');
+                }
+
+                /**
+                 * 7️⃣ Create distribution record
+                 * Auto distribution always gives 1 item.
+                 */
+                $distribution = RaffleDistribution::create([
+                    'raffle_id' => $raffle->id,
+                    'member_id' => $validated['member_id'],
+                    'item_id'   => $item->id,
+                    'quantity'  => 1,
+                ]);
+
+                /**
+                 * 8️⃣ Reduce item quantity in raffle_items pivot
+                 */
+                $raffle->items()->updateExistingPivot(
+                    $item->id,
+                    [
+                        'quantity' => $item->pivot->quantity - 1
+                    ]
+                );
+
+                return $distribution;
+            });
+
+            /**
+             * 9️⃣ Success response
+             */
+            return response()->json([
+                'success' => true,
+                'message' => 'Item auto-distributed successfully',
+                'data'    => $distribution,
+            ], 201);
+
+        } catch (\Exception $e) {
+            /**
+             * ❌ Any exception causes rollback
+             */
+            return response()->json([
+                'success' => false,
+                'message' => 'Auto distribution failed',
+                'errors'  => $e->getMessage(),
+            ], 422);
+        }
     }
 
     public function manual(Request $request)
