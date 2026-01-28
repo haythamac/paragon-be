@@ -109,4 +109,22 @@ class RaffleController extends Controller
         }
 
     }
+
+    public function show($id)
+    {
+        $raffle = Raffle::with(['members', 'items'])->find($id);
+
+        if (!$raffle) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Raffle not found',
+            ], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => $raffle,
+            'message' => 'Raffle retrieved successfully.',
+        ]);
+    }
 }
