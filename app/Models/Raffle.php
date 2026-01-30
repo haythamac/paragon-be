@@ -34,7 +34,7 @@ class Raffle extends Model
     public function items()
     {
         return $this->belongsToMany(Items::class, 'raffle_item' ,'raffle_id', 'item_id')
-                    ->withPivot('initial_quantity')
+                    ->withPivot('remaining_quantity', 'initial_quantity')
                     ->withTimestamps();
     }
 
