@@ -133,23 +133,17 @@ class RaffleDistributionController extends Controller
     public function manual(Request $request)
     {
         /**
-         * Define validation rules
-         * We only validate existence & basic constraints here.
-         * Business rules (member in raffle, item in raffle, quantity check)
-         * are handled AFTER validation.
+         * Validate the top-level fields and the items array
          */
         $rules = [
-            'raffle_id' => 'required|exists:raffles,id',
-            'member_id' => 'required|exists:members,id',
-            'item_id'   => 'required|exists:items,id',
-            'quantity'  => 'required|integer|min:1',
+            'raffle_id'          => 'required|exists:raffles,id',
+            'member_id'          => 'required|exists:members,id',
+            'items'              => 'required|array|min:1',
+            'items.*.item_id'    => 'required|exists:items,id',
+            'items.*.quantity'   => 'required|integer|min:1',
         ];
 
-        /**
-         * Run validator
-         */
         $validator = Validator::make($request->all(), $rules);
-
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
@@ -158,92 +152,78 @@ class RaffleDistributionController extends Controller
             ], 422);
         }
 
-        /**
-         * Get validated data
-         */
         $validated = $validator->validated();
 
-        /**
-         * Use DB transaction to ensure:
-         * - distribution record is created
-         * - item quantity is reduced
-         * BOTH succeed or BOTH fail
-         */
         try {
-            $distribution = DB::transaction(function () use ($validated) {
-
-                // Load raffle
+            $distributions = DB::transaction(function () use ($validated) {
                 $raffle = Raffle::findOrFail($validated['raffle_id']);
 
                 /**
-                 * Ensure member belongs to this raffle
+                 * Ensure member belongs to this raffle (check once)
                  */
                 $memberExists = $raffle->members()
                     ->where('members.id', $validated['member_id'])
                     ->exists();
-
                 if (! $memberExists) {
                     throw new \Exception('Member not in this raffle');
                 }
 
-                /**
-                 * Ensure item belongs to this raffle
-                 */
-                $raffleItem = $raffle->items()
-                    ->where('items.id', $validated['item_id'])
-                    ->first();
+                $results = [];
 
-                if (! $raffleItem) {
-                    throw new \Exception('Item not in this raffle');
+                foreach ($validated['items'] as $item) {
+                    /**
+                     * Ensure item belongs to this raffle
+                     */
+                    $raffleItem = $raffle->items()
+                        ->where('items.id', $item['item_id'])
+                        ->first();
+                    if (! $raffleItem) {
+                        throw new \Exception("Item ID {$item['item_id']} is not in this raffle");
+                    }
+
+                    /**
+                     * Ensure enough quantity is available
+                     */
+                    if ($raffleItem->pivot->remaining_quantity < $item['quantity']) {
+                        throw new \Exception("Not enough quantity for item ID {$item['item_id']}. Available: {$raffleItem->pivot->remaining_quantity}");
+                    }
+
+                    /**
+                     * Create distribution record
+                     */
+                    $distribution = RaffleDistribution::create([
+                        'raffle_id' => $validated['raffle_id'],
+                        'member_id' => $validated['member_id'],
+                        'item_id'   => $item['item_id'],
+                        'quantity'  => $item['quantity'],
+                    ]);
+
+                    /**
+                     * Reduce remaining quantity in pivot
+                     */
+                    $raffle->items()->updateExistingPivot(
+                        $item['item_id'],
+                        [
+                            'remaining_quantity' => $raffleItem->pivot->remaining_quantity - $item['quantity']
+                        ]
+                    );
+
+                    $results[] = $distribution;
                 }
 
-                /**
-                 * Ensure enough quantity is available
-                 */
-                if ($raffleItem->pivot->remaining_quantity < $validated['quantity']) {
-                    throw new \Exception('Not enough item quantity');
-                }
-
-                /**
-                 *  Create distribution record (LOG of what happened)
-                 */
-                $distribution = RaffleDistribution::create([
-                    'raffle_id' => $validated['raffle_id'],
-                    'member_id' => $validated['member_id'],
-                    'item_id'   => $validated['item_id'],
-                    'quantity'  => $validated['quantity'],
-                ]);
-
-                /**
-                 * Reduce item quantity in raffle_items pivot
-                 */
-                $raffle->items()->updateExistingPivot(
-                    $validated['item_id'],
-                    [
-                        'remaining_quantity' => $raffleItem->pivot->remaining_quantity - $validated['quantity']
-                    ]
-                );
-
-                return $distribution;
+                return $results;
             });
 
-            /**
-             * Success response
-             */
             return response()->json([
                 'success' => true,
-                'message' => 'Item distributed successfully',
-                'data'    => $distribution,
+                'message' => 'Items distributed successfully',
+                'data'    => $distributions,
             ], 201);
 
         } catch (\Exception $e) {
-            /**
-             * Any error inside the transaction
-             * automatically rolls everything back
-             */
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to distribute item',
+                'message' => 'Failed to distribute items',
                 'errors'  => $e->getMessage(),
             ], 422);
         }
