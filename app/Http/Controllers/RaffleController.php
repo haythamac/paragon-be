@@ -112,7 +112,7 @@ class RaffleController extends Controller
 
     public function show($id)
     {
-        $raffle = Raffle::with(['members', 'items'])->find($id);
+        $raffle = Raffle::with(['members', 'items.category'])->find($id);
 
         if (!$raffle) {
             return response()->json([

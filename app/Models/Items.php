@@ -18,6 +18,12 @@ class Items extends Model
                     ->withPivot('quantity');
     }
 
+    public function category()
+    {
+        return $this->belongsTo(ItemCategory::class, 'item_category_id');
+    }
+
+
     // Distributions of this item
     public function distributions()
     {
