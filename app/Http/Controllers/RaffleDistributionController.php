@@ -200,7 +200,7 @@ class RaffleDistributionController extends Controller
                 /**
                  * Ensure enough quantity is available
                  */
-                if ($raffleItem->pivot->quantity < $validated['quantity']) {
+                if ($raffleItem->pivot->remaining_quantity < $validated['quantity']) {
                     throw new \Exception('Not enough item quantity');
                 }
 
@@ -220,7 +220,7 @@ class RaffleDistributionController extends Controller
                 $raffle->items()->updateExistingPivot(
                     $validated['item_id'],
                     [
-                        'quantity' => $raffleItem->pivot->quantity - $validated['quantity']
+                        'remaining_quantity' => $raffleItem->pivot->remaining_quantity - $validated['quantity']
                     ]
                 );
 
