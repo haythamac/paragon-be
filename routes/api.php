@@ -19,12 +19,21 @@ Route::apiResource('item', ItemsController::class);
 
 
 Route::prefix('raffles/{raffle}')->group(function () {
-    // Auto distribution: system picks next available item
+    // Auto distribution
     Route::post('distribute/auto', [RaffleDistributionController::class, 'auto']);
 
-    // Manual distribution: admin chooses item and member
+    // Manual distribution
     Route::post('distribute/manual', [RaffleDistributionController::class, 'manual']);
 
-    // Optional: view all distributions for this raffle
+    // View all distributions for this raffle
     Route::get('distributions', [RaffleDistributionController::class, 'index']);
+
+    // Show one distribution row (raffle + distribution id)
+    Route::get('distributions/{distribution}', [RaffleDistributionController::class, 'show']);
+
+    // Show all items won by a specific member in this raffle
+    Route::get('members/{member}/items', [RaffleDistributionController::class, 'memberItems']);
+
+    // Show all winners of a specific item in this raffle
+    Route::get('items/{item}/winners', [RaffleDistributionController::class, 'itemWinners']);
 });

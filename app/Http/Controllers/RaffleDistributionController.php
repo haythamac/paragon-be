@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Items;
+use App\Models\Member;
 use App\Models\Raffle;
 use App\Models\RaffleDistribution;
 use Illuminate\Http\Request;
@@ -14,6 +16,58 @@ class RaffleDistributionController extends Controller
     {
         return $raffle->distributions()->with(['member','item'])->get();
     }
+
+    public function show(Raffle $raffle, RaffleDistribution $distribution)
+    {
+        if ($distribution->raffle_id !== $raffle->id) {
+            abort(404);
+        }
+
+        return $distribution->load(['member','item']);
+    }
+
+    public function memberItems(Raffle $raffle, Member $member)
+    {
+        $distributions = RaffleDistribution::where('raffle_id', $raffle->id)
+            ->where('member_id', $member->id)
+            ->with('item')
+            ->get();
+
+        return [
+            'raffle' => $raffle,
+            'member' => $member,
+            'items' => $distributions->map(function ($dist) {
+                return [
+                    'id' => $dist->item->id,
+                    'name' => $dist->item->name,
+                    'quantity' => $dist->quantity,
+                ];
+            }),
+        ];
+    }
+
+    public function itemWinners(Raffle $raffle, Items $item)
+    {
+        $distributions = RaffleDistribution::where('raffle_id', $raffle->id)
+            ->where('item_id', $item->id)
+            ->with('member')
+            ->get();
+
+        return [
+            'raffle' => $raffle,
+            'item' => $item,
+            'winners' => $distributions->map(function ($dist) {
+                return [
+                    'id' => $dist->member->id,
+                    'name' => $dist->member->name,
+                    'quantity' => $dist->quantity,
+                ];
+            }),
+        ];
+    }
+
+
+
     
     public function auto(Request $request)
     {
