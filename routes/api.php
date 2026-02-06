@@ -34,6 +34,8 @@ Route::prefix('raffles/{raffle}')->group(function () {
     // Show all items won by a specific member in this raffle
     Route::get('members/{member}/items', [RaffleDistributionController::class, 'memberItems']);
 
+    Route::get('members/items', [RaffleDistributionController::class, 'raffleMembersItems']);
+
     // Show all winners of a specific item in this raffle
     Route::get('items/{item}/winners', [RaffleDistributionController::class, 'itemWinners']);
 });

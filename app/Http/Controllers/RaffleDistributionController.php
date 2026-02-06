@@ -46,6 +46,34 @@ class RaffleDistributionController extends Controller
         ];
     }
 
+    public function raffleMembersItems(Raffle $raffle)
+    {
+        $distributions = RaffleDistribution::where('raffle_id', $raffle->id)
+            ->with(['member', 'item'])
+            ->get()
+            ->groupBy('member_id');
+
+        return [
+            'raffle' => $raffle,
+            'members' => $distributions->map(function ($memberDists) {
+                $member = $memberDists->first()->member;
+
+                return [
+                    'id' => $member->id,
+                    'name' => $member->name,
+                    'items' => $memberDists->map(function ($dist) {
+                        return [
+                            'id' => $dist->item->id,
+                            'name' => $dist->item->name,
+                            'quantity' => $dist->quantity,
+                        ];
+                    })->values(),
+                ];
+            })->values(),
+        ];
+    }
+
+
     public function itemWinners(Raffle $raffle, Items $item)
     {
         $distributions = RaffleDistribution::where('raffle_id', $raffle->id)

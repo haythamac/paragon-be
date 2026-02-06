@@ -127,4 +127,117 @@ class RaffleController extends Controller
             'message' => 'Raffle retrieved successfully.',
         ]);
     }
+
+    public function update(Request $request, $id)
+    {
+        $raffle = Raffle::find($id);
+        if (!$raffle) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Raffle not found',
+            ], 404);
+        }
+
+        // create validation rules
+        $rules = [
+            'name' => 'sometimes|required|string|max:255|unique:raffles,name,' . $raffle->id,
+            'date' => 'sometimes|required|date',
+            'description' => 'nullable|string',
+            'status' => 'sometimes|required|in:pending,ongoing,completed',
+            // members
+            'members' => 'sometimes|required|array|min:1',
+            'members.*' => 'exists:members,id',
+            // items
+            'items' => 'sometimes|required|array',
+            'items.*.id' => 'exists:items,id',
+            'items.*.quantity' => 'required|integer|min:1',
+        ];
+
+        // validate the request
+        $validator = Validator::make($request->all(), $rules);
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        // get validated data
+        $validated = $validator->validated();
+
+        // use transaction to ensure data integrity
+        try {
+            $raffle = DB::transaction(function () use ($raffle, $validated) {
+                // update the raffle basic info
+                $raffle->update([
+                    'name' => $validated['name'] ?? $raffle->name,
+                    'date' => $validated['date'] ?? $raffle->date,
+                    'description' => $validated['description'] ?? $raffle->description,
+                    'status' => $validated['status'] ?? $raffle->status,
+                ]);
+
+                // sync members if provided
+                if (isset($validated['members'])) {
+                    $raffle->members()->sync($validated['members']);
+                }
+
+                // sync items with their quantities if provided
+                if (isset($validated['items'])) {
+                    $itemsData = [];
+                    foreach ($validated['items'] as $item) {
+                        $itemsData[$item['id']] = [
+                            'initial_quantity' => $item['quantity'],
+                            'remaining_quantity' => $item['quantity'],
+                        ];
+                    }
+                    $raffle->items()->sync($itemsData);
+                }
+
+                // load relationships for the response
+                $raffle->load('members', 'items');
+                
+                return $raffle;
+            });
+
+            // success response
+            return response()->json([
+                'success' => true,
+                'message' => 'Raffle updated successfully',
+                'data' => $raffle,
+            ], 200);
+        } catch (\Exception $e) {
+            // handle errors
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update raffle',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function destroy($id)
+    {
+        $raffle = Raffle::find($id);
+        if (!$raffle) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Raffle not found',
+            ], 404);
+        }
+
+        try {
+            $raffle->delete();
+            return response()->json([
+                'success' => true,
+                'message' => 'Raffle deleted successfully',
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to delete raffle',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
 }
