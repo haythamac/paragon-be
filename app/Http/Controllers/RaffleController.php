@@ -10,7 +10,8 @@ use Illuminate\Support\Facades\Validator;
 class RaffleController extends Controller
 {
     public function index(){
-        $raffles = Raffle::withCount('members')  // Adds members_count
+        $raffles = Raffle::withCount('members')
+                    ->orderBy('date', 'desc')
                     ->get()
                     ->map(function ($raffle) {
                         return [
@@ -236,6 +237,45 @@ class RaffleController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to delete raffle',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function changeStatus(Request $request, $id)
+    {
+        $raffle = Raffle::find($id);
+        if (!$raffle) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Raffle not found',
+            ], 404);
+        }
+
+        $rules = [
+            'status' => 'required|in:pending,ongoing,completed',
+        ];
+
+        $validator = Validator::make($request->all(), $rules);
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        try {
+            $raffle->update(['status' => $request->input('status')]);
+            return response()->json([
+                'success' => true,
+                'message' => 'Raffle status updated successfully',
+                'data' => $raffle,
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update raffle status',
                 'error' => $e->getMessage(),
             ], 500);
         }
