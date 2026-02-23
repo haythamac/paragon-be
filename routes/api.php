@@ -39,5 +39,6 @@ Route::prefix('raffles/{raffle}')->group(function () {
     // Show all winners of a specific item in this raffle
     Route::get('items/{item}/winners', [RaffleDistributionController::class, 'itemWinners']);
 
-    Route::get('change-status', [RaffleController::class, 'changeStatus']);
+    // Change raffle status
+    Route::patch('change-status', [RaffleController::class, 'changeStatus']);
 });

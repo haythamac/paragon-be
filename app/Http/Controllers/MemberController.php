@@ -11,7 +11,17 @@ class MemberController extends Controller
 {
     public function index()
     {
-        $members = Member::all();
+        $members = Member::orderByRaw("
+                        CASE 
+                            WHEN role = 'leader' THEN 1
+                            WHEN role = 'elder' THEN 2
+                            WHEN role = 'member' THEN 3
+                            ELSE 4
+                        END
+                    ")
+                    ->orderBy('name', 'asc') // A → Z
+                    ->get();
+
         return response()->json(
             [
                 'success' => true,
