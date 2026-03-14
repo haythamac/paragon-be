@@ -10,12 +10,16 @@ class Member extends Model
     /** @use HasFactory<\Database\Factories\MemberFactory> */
     use HasFactory;
 
+    const STATUS_ACTIVE = 'active';
+    const STATUS_INACTIVE = 'inactive';
+
     protected $fillable = [
         'name',
         'level',
         'power',
         'role',
         'class',
+        'status',
     ];
 
     protected $casts = [
@@ -34,5 +38,17 @@ class Member extends Model
     {
         return $this->hasMany(RaffleDistribution::class);
     }
-    
+
+    // Scope for active members
+    public function scopeActive($query)
+    {
+        return $query->where('status', self::STATUS_ACTIVE);
+    }
+
+    // Scope for inactive members
+    public function scopeInactive($query)
+    {
+        return $query->where('status', self::STATUS_INACTIVE);
+    }
+
 }
