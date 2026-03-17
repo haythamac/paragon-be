@@ -19,8 +19,8 @@ class MemberController extends Controller
                             ELSE 4
                         END
                     ")
-                    ->orderBy('name', 'asc') // A → Z
-                    ->get();
+            ->orderBy('name', 'asc') // A → Z
+            ->get();
 
         return response()->json(
             [
@@ -87,7 +87,7 @@ class MemberController extends Controller
         //     }
         //   }
         // }
-        
+
         // for error response
         // {
         //   "success": false,
@@ -160,6 +160,30 @@ class MemberController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Member deleted successfully',
+        ]);
+    }
+
+    public function updateStatus(Request $request, $id)
+    {
+        $member = Member::find($id);
+        if (!$member) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Member not found',
+            ], 404);
+        }
+
+        $request->validate([
+            'status' => 'required|in:active,inactive'
+        ]);
+
+        $member->status = $request->status;
+        $member->save();
+
+        return response()->json([
+            'success' => true,
+            'data' => $member,
+            'message' => 'Member status updated successfully.',
         ]);
     }
 }
